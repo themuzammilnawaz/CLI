@@ -258,7 +258,7 @@ function generate(){
     if(quality.value!=="best") c+=`--audio-quality ${quality.value} `;
     if(thumb.checked) c+="--embed-thumbnail ";
     if(meta.checked) c+="--add-metadata ";
-    c+=`-o "/storage/emulated/0/Download/Audio/%(title)s - %(acodec)s.%(ext)s" `;
+    c+=`-o "/storage/emulated/0/Download/Audio/%(title)s.%(ext)s" `;
   }else{
     c+=quality.value==="best"
       ? '-f "bestvideo+bestaudio/best" '
@@ -266,7 +266,7 @@ function generate(){
     c+=`--merge-output-format ${format.value} `;
     if(thumb.checked) c+="--embed-thumbnail ";
     if(meta.checked) c+="--add-metadata ";
-    c+=`-o "/storage/emulated/0/Download/Videos/%(title)s - %(resolution)s - %(vcodec)s+%(acodec)s.%(ext)s" `;
+    c+=`-o "/storage/emulated/0/Download/Videos/%(title)s - %(resolution)s.%(ext)s" `;
   }
 
   c+=`"${u}"`;

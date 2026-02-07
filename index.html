@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLI Generator for yt-dlp</title>
+
+<style>
+:root{
+  --primary:#1a73e8;
+  --bg:#f5f6f7;
+  --card:#fff;
+  --text:#202124;
+  --border:#dadce0;
+  --radius:12px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  background:var(--bg);
+  padding:10px;
+}
+
+.app{
+  max-width:650px;
+  margin:auto;
+  background:var(--card);
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+  overflow:hidden;
+}
+
+.header{
+  text-align:center;
+  padding:10px;
+  font-weight:700;
+  border-bottom:1px solid var(--border);
+}
+
+.section{
+  padding:10px;
+  border-bottom:1px solid var(--border);
+}
+
+label{
+  font-size:12px;
+  font-weight:600;
+}
+
+/* layout */
+.row{display:flex;gap:6px}
+.col{flex:1}
+
+/* URL input */
+.url-wrap{position:relative}
+.url-wrap input{padding-right:36px}
+.clear-btn{
+  position:absolute;
+  right:8px;
+  top:50%;
+  transform:translateY(-50%);
+  cursor:pointer;
+  color:#666;
+  font-size:16px;
+}
+
+/* inputs */
+input,select,textarea{
+  width:100%;
+  padding:8px;
+  font-size:13px;
+  margin-top:4px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  font-family:inherit;
+}
+
+/* type selector */
+.type{display:flex;gap:6px}
+.type div{
+  flex:1;
+  text-align:center;
+  padding:8px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  cursor:pointer;
+}
+.type .active{
+  background:#e8f0fe;
+  border-color:var(--primary);
+  font-weight:700;
+}
+
+/* toggles */
+.toggle{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  margin-bottom:6px;
+  cursor:pointer;
+}
+.toggle input{display:none}
+
+.switch{
+  width:36px;height:20px;background:#ccc;border-radius:999px;position:relative;
+}
+.switch::after{
+  content:"";width:16px;height:16px;background:#fff;
+  border-radius:50%;position:absolute;top:2px;left:2px;transition:.2s;
+}
+.toggle input:checked + .switch{background:var(--primary)}
+.toggle input:checked + .switch::after{transform:translateX(16px)}
+
+button{
+  width:100%;
+  padding:10px;
+  font-weight:700;
+  border:none;
+  border-radius:8px;
+  background:var(--primary);
+  color:#fff;
+  font-family:inherit;
+}
+
+.copy-btn{background:#111;margin-top:6px}
+
+#result{display:none}
+
+textarea{
+  height:130px;
+  font-size:11px;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<div class="header">✨ CLI Generator for yt-dlp</div>
+
+<!-- URL -->
+<div class="section">
+<label>🔗 URL</label>
+<div class="url-wrap">
+<input id="url" placeholder="Enter or Paste you Link...">
+<span class="clear-btn" onclick="url.value=''">✕</span>
+</div>
+</div>
+
+<!-- TYPE -->
+<div class="section">
+<div class="type">
+<div class="active" data-t="video">🎬 Video</div>
+<div data-t="audio">🎧 Audio</div>
+</div>
+</div>
+
+<!-- QUALITY + FORMAT -->
+<div class="section">
+<div class="row">
+  <div class="col">
+    <label>⚙️ Quality</label>
+    <select id="quality"></select>
+  </div>
+  <div class="col">
+    <label>📦 Format</label>
+    <select id="format"></select>
+  </div>
+</div>
+</div>
+
+<!-- TOGGLES -->
+<div class="section">
+<div class="toggle" onclick="thumb.checked=!thumb.checked">
+  <span>🖼️ Embed Thumbnail</span>
+  <input type="checkbox" id="thumb" checked>
+  <div class="switch"></div>
+</div>
+
+<div class="toggle" onclick="meta.checked=!meta.checked">
+  <span>🧾 Add Metadata</span>
+  <input type="checkbox" id="meta" checked>
+  <div class="switch"></div>
+</div>
+
+<div class="toggle" onclick="cookies.checked=!cookies.checked">
+  <span>🍪 Use cookies.txt</span>
+  <input type="checkbox" id="cookies">
+  <div class="switch"></div>
+</div>
+
+<div class="toggle" onclick="playlist.checked=!playlist.checked">
+  <span>📜 Playlist mode</span>
+  <input type="checkbox" id="playlist">
+  <div class="switch"></div>
+</div>
+</div>
+
+<!-- BUTTON -->
+<div class="section">
+<button onclick="generate()">🚀 Generate Command</button>
+</div>
+
+<!-- RESULT -->
+<div class="section" id="result">
+<textarea id="cmd" readonly></textarea>
+<button class="copy-btn" onclick="copyCmd(this)">📋 Copy</button>
+</div>
+
+</div>
+
+<script>
+const vQ=["best","2160","1440","1080","720","480","360"];
+const aQ=["best","320","256","192","128"];
+const vF=["mp4","mkv","webm"];
+const aF=["mp3","m4a","opus","wav"];
+let type="video";
+
+function fill(){
+  quality.innerHTML=""; format.innerHTML="";
+  if(type==="video"){
+    vQ.forEach(x=>quality.innerHTML+=`<option>${x}</option>`);
+    vF.forEach(x=>format.innerHTML+=`<option>${x}</option>`);
+  }else{
+    aQ.forEach(x=>quality.innerHTML+=`<option>${x}</option>`);
+    aF.forEach(x=>format.innerHTML+=`<option>${x}</option>`);
+  }
+}
+fill();
+
+document.querySelectorAll(".type div").forEach(d=>{
+  d.onclick=()=>{
+    document.querySelectorAll(".type div").forEach(x=>x.classList.remove("active"));
+    d.classList.add("active");
+    type=d.dataset.t;
+    fill();
+  };
+});
+
+function generate(){
+  const u=url.value.trim();
+  if(!u){alert("URL required");return;}
+
+  let c="yt-dlp ";
+
+  if(cookies.checked)
+    c+='--cookies "/storage/emulated/0/Download/cookies.txt" ';
+
+  c+= playlist.checked ? "--yes-playlist " : "";
+
+  if(type==="audio"){
+    c+=`-x --audio-format ${format.value} `;
+    if(quality.value!=="best") c+=`--audio-quality ${quality.value} `;
+    if(thumb.checked) c+="--embed-thumbnail ";
+    if(meta.checked) c+="--add-metadata ";
+    c+=`-o "/storage/emulated/0/Download/Audio/%(title)s - %(acodec)s.%(ext)s" `;
+  }else{
+    c+=quality.value==="best"
+      ? '-f "bestvideo+bestaudio/best" '
+      : `-f "bv*[height<=${quality.value}]+ba" `;
+    c+=`--merge-output-format ${format.value} `;
+    if(thumb.checked) c+="--embed-thumbnail ";
+    if(meta.checked) c+="--add-metadata ";
+    c+=`-o "/storage/emulated/0/Download/Videos/%(title)s - %(resolution)s - %(vcodec)s+%(acodec)s.%(ext)s" `;
+  }
+
+  c+=`"${u}"`;
+  cmd.value=c;
+  result.style.display="block";
+}
+
+function copyCmd(btn){
+  cmd.select();
+  document.execCommand("copy");
+  btn.textContent="👍🏼 Copied";
+  setTimeout(()=>btn.textContent="📋 Copy",1200);
+}
+</script>
+
+</body>
+</html>
